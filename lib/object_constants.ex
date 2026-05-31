@@ -80,6 +80,12 @@ defmodule ObjectConstants do
       }
       @pc_prefix_value_map map_swap.(@value_pc_prefix_map)
 
+      @value_program_data_type_map %{
+        0x01 => :program_data_tbol,
+        0x02 => :program_data_application
+      }
+      @program_data_type_value_map map_swap.(@value_program_data_type_map)
+
     end
   end
 end

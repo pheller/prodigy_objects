@@ -100,6 +100,13 @@ defmodule ObjectTypes do
         }
   @type value_pc_prefix_map :: %{pc_prefix_value() => pc_prefix()}
 
+  @type program_data_type ::
+          :program_data_tbol
+          | :program_data_application
+  @type program_data_type_value :: 0x01 | 0x02
+  @type program_data_type_value_map :: %{program_data_type() => program_data_type_value()}
+  @type value_program_data_type_map :: %{program_data_type_value() => program_data_type()}
+
   # x, y coordinates
   @type xy :: {integer(), integer()}
 
