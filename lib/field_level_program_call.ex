@@ -89,7 +89,7 @@ defmodule FieldLevelProgramCall do
             @segment_value_map[flpc_segment.segment_type],
             segment_length::16-little,
             @pc_event_value_map[flpc_segment.event],
-            flpc_segment.field_name::binary-size(1),
+            flpc_segment.field_name::8,
             @pc_prefix_value_map[flpc_segment.prefix],
             o_name::binary-size(8),
             o_ext::binary-size(3),
@@ -98,7 +98,7 @@ defmodule FieldLevelProgramCall do
             parameters_buffer::binary
           >>
 
-        :pc_prefix_program_call_offset ->
+        :pc_prefix_program_embedded ->
           segment_length =
               1 + # segment_type
               2 + # segment_length
@@ -106,13 +106,14 @@ defmodule FieldLevelProgramCall do
               1 + # field_name
               1 + # prefix
               2 + # program offset
-              parameters_length
+              parameters_length +
+              byte_size(flpc_segment.embedded_object)
 
           <<
             @segment_value_map[flpc_segment.segment_type],
             segment_length::16-little,
             @pc_event_value_map[flpc_segment.event],
-            flpc_segment.field_name::binary-size(1),
+            flpc_segment.field_name::8,
             @pc_prefix_value_map[flpc_segment.prefix],
             parameters_length::16-little,
             parameters_buffer::binary,
