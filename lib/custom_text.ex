@@ -71,9 +71,9 @@ defmodule CustomText do
       <<
         @segment_value_map[:custom_text],
         length::16-little,
-        custom_text.reference_id::binary-size(1),
-        custom_text.foreground_color::binary-size(1),
-        custom_text.background_color::binary-size(1),
+        custom_text.reference_id::8,
+        custom_text.foreground_color::8,
+        custom_text.background_color::8,
         custom_text.naplps::binary
       >>
     end

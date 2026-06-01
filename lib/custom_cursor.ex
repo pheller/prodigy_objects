@@ -62,7 +62,7 @@ defmodule CustomCursor do
       <<
         @segment_value_map[:custom_cursor],
         length::16-little,
-        custom_cursor.cursor_id::binary-size(1),
+        custom_cursor.cursor_id::8,
         ObjectUtils.naplps_coords(custom_cursor.cursor_size)::binary,
         custom_cursor.naplps::binary
       >>

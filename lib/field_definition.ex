@@ -81,9 +81,9 @@ defmodule FieldDefinition do
         @field_format_value_map[field_definition.field_format],
         ObjectUtils.naplps_coords(field_definition.origin)::binary,
         ObjectUtils.naplps_coords(field_definition.size)::binary,
-        field_definition.field_name::16-little,
-        field_definition.text_id::16-little,
-        field_definition.cursor_id::16-little,
+        field_definition.field_name::8,
+        field_definition.text_id::8,
+        field_definition.cursor_id::8,
         ObjectUtils.naplps_coords(field_definition.cursor_origin)::binary
       >>
     end
