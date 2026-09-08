@@ -55,6 +55,19 @@ defmodule StandardMenu do
   # Type byte for a program object, as it appears inside an OBJID.
   @type_program 0x0C
 
+  # Action 1 is Navigate; type 0 is an ordinary field rather than a TTX
+  # Assistant MENU field.
+  @action_navigate 0x01
+  @type_plain 0x00
+
+  # Menus here are single-page.
+  @page_one 0x01
+
+  @fg_default 7
+  @bg_default 0
+  # Field state 3 in a display entry is an action field.
+  @state_action 3
+
   @doc """
   An OBJID: an 11-character name, a sequence and a type, as 13 bytes.
 
@@ -84,24 +97,67 @@ defmodule StandardMenu do
     * `:mode` - menu mode byte, default 3
     * `:processors` - OBJIDs for mode 0, default none
     * `:pages` - page byte leading P3, default 0
-    * `:actions` - iodata appended to P3, one entry per action
-    * `:display_attrs`, `:menu_attrs`, `:action_attrs` - the attribute blocks
+    * `:next_page` - what NEXT reaches from this page, as an OBJID followed by
+      any destination parameter. This is P3's real job: the recovered
+      NH00CF4JB has empty choice and action lists and uses its menu only to
+      name NH00CF4KB as its successor.
+    * `:actions` - one entry per numbered choice, each the OBJID (plus any
+      destination parameter) the choice navigates to. P4's choice-to-offset
+      map and P6's action list are built from these.
+    * `:display_attrs`, `:menu_attrs`, `:action_attrs` - overrides for the
+      attribute blocks, if the defaults do not suit.
+
+  With no actions the defaults reproduce NH00CF4JB's parameters exactly.
   """
   @spec menu_params(keyword()) :: [binary()]
   def menu_params(opts \\ []) do
     processors = Keyword.get(opts, :processors, [])
     mode = Keyword.get(opts, :mode, 3)
     pages = Keyword.get(opts, :pages, 0)
-    actions = opts |> Keyword.get(:actions, []) |> IO.iodata_to_binary()
+    next_page = Keyword.get(opts, :next_page) || <<>>
+    targets = Keyword.get(opts, :actions, [])
+
+    entries = Enum.map(targets, &(<<@action_navigate, @type_plain>> <> &1))
 
     [
       <<length(processors)>> <> IO.iodata_to_binary(processors),
       <<mode>>,
-      <<pages>> <> actions,
-      Keyword.get(opts, :display_attrs, <<0x01, 0x00, 0x00>>),
-      Keyword.get(opts, :menu_attrs, <<0x01, 0x00, 0x02, 0x00, 0x00>>),
-      Keyword.get(opts, :action_attrs, <<0x01, 0x00, 0x01, 0x00>>)
+      <<pages>> <> next_page,
+      Keyword.get(opts, :choice_attrs) || choice_map(entries),
+      Keyword.get(opts, :display_attrs) || display_attrs(length(entries)),
+      Keyword.get(opts, :action_attrs) || action_attrs(entries)
     ]
+  end
+
+  # P4: [page][len:2] then [choice][offset into P6's action list:2] per choice.
+  defp choice_map(entries) do
+    {rows, _} =
+      Enum.map_reduce(Enum.with_index(entries, 1), 0, fn {e, choice}, off ->
+        {<<choice, off::16-big>>, off + 1 + byte_size(e)}
+      end)
+
+    body = IO.iodata_to_binary(rows)
+    <<@page_one, byte_size(body)::16-big>> <> body
+  end
+
+  # P5: [page][len:2][init cursor PEV] then a display entry per field,
+  # terminated by a zero byte.
+  defp display_attrs(count) do
+    body =
+      <<0>> <>
+        IO.iodata_to_binary(
+          for pev <- 1..count//1, do: <<pev, @fg_default, @bg_default, @state_action, 0::16>>
+        ) <> <<0>>
+
+    <<@page_one, byte_size(body)::16-big>> <> body
+  end
+
+  # P6: [page][len:2] then [PEV] + entry per action, terminated by a zero byte.
+  defp action_attrs(entries) do
+    body =
+      IO.iodata_to_binary(for {e, pev} <- Enum.with_index(entries, 1), do: <<pev>> <> e) <> <<0>>
+
+    <<@page_one, byte_size(body)::16-big>> <> body
   end
 
   @doc """
